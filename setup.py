@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
-# TODO: add dependencies
-setup(name="gym_quad", version="0.0.1", install_requires=["gym", "numpy"])
+# TODO: add additional dependencies
+setup(name="gym_quad", packages=find_packages(), install_requires=["gym", "numpy", "matplotlib"])

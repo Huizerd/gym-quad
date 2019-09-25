@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+
+# PyCharm
+.idea/
+
+# Benchmark environment
+benchmark/
+
+# Development installation
+*.egg-info/
+
+# Compiled stuff
+__pycache__/
