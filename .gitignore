@@ -4,8 +4,9 @@ venv/
 # PyCharm
 .idea/
 
-# Benchmark environment
+# Benchmark environment and things tried out
 benchmark/
+tryouts/
 
 # Development installation
 *.egg-info/

@@ -17,6 +17,8 @@ class QuadHover(gym.Env):
         noise_p=0.1,
         thrust_tc=0.02,
         settle=1.0,
+        wind=0.0,
+        h0=5.0,
         dt=0.02,
         seed=0,
     ):
@@ -25,7 +27,10 @@ class QuadHover(gym.Env):
         assert comp_delay_prob >= 0.0 and comp_delay_prob <= 1.0
         assert noise >= 0.0 and noise_p >= 0.0
         assert thrust_tc >= 0.0
+        assert settle >= 0.0
+        assert wind >= 0.0
         assert dt >= 0.0
+        assert (delay + 1) * dt < settle
 
         # Constants
         self.G = 9.81
@@ -41,12 +46,16 @@ class QuadHover(gym.Env):
         self.comp_delay_prob = comp_delay_prob
         self.noise_std = noise  # white noise
         self.noise_p_std = noise_p  # noise proportional to divergence
+        self.wind_std = wind
         self.thrust_tc = thrust_tc  # thrust time constant
 
         # Figure for rendering
 
+        # Seed
+        self.seed(seed)
+
         # Reset to get initial observation
-        self.reset()
+        self.reset(h0)
 
         # Initialize spaces
         # Thrust value as action, (div, div_dot) as observation
@@ -57,14 +66,13 @@ class QuadHover(gym.Env):
             low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
         )
 
-        # Seed
-        self.seed(seed)
+    def step(self, action):
+        # Update wind
+        self._get_wind()
 
-    def step(self, action, wind=0.0):
-        # TODO: put wind in a pre-initialized process instead of external?
         # Take action and update state
         # Forward Euler method
-        self.state += (self._get_state_dot(action) + [0.0, wind, 0.0]) * self.dt
+        self.state += (self._get_state_dot(action) + [0.0, self.wind, 0.0]) * self.dt
         self.t += self.dt
 
         # Check whether done
@@ -75,11 +83,13 @@ class QuadHover(gym.Env):
 
         return self._get_obs(), reward, done, {}
 
+    def _get_wind(self):
+        if self.wind_std > 0.0:
+            self.wind += (np.random.normal(0.0, self.wind_std) - self.wind) * self.dt / (self.dt + self.wind_std)
+
     def _get_obs(self):
         # Compute ground truth divergence
-        # TODO: add factor of 2 after comparison
-        # div = -self.state[1] / (self.state[0] if abs(self.state[0]) > 1e-5 else 1e-5)
-        div = -self.state[1] / max(1e-5, self.state[0])
+        div = - 2.0 * self.state[1] / max(1e-5, self.state[0])
         div_dot = (div - self.div_ph[0]) / self.dt
 
         # Overwrite placeholder
@@ -151,12 +161,12 @@ class QuadHover(gym.Env):
         # We need a placeholder for ground truth divergence to compute div_dot
         self.div_ph = np.array([0.0, 0.0])
         # Observations include noise, deque to allow for delay
-        # TODO: shouldn't size of deque be delay + 1?
-        # TODO: should we fill this deque beforehand? So not taking any action?
         # Zeros are just for the initial calculation of div_dot
-        self.obs = deque([[0.0, 0.0]], maxlen=self.delay)
+        self.obs = deque([[0.0, 0.0]], maxlen=self.delay + 1)
 
+        # Other: time and wind (which we always init as zero)
         self.t = 0.0
+        self.wind = 0.0
 
         return self._get_obs()
 
