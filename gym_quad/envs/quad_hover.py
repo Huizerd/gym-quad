@@ -76,7 +76,15 @@ class QuadHover(gym.Env):
         self.t += self.dt
 
         # Check whether done
+        # TODO: this structure can be done better:
+        # TODO: we adjust h here below and in reward
+        # TODO: and we check twice for done, here and in reward
+        # TODO: and combine with implementing objecive score in reward!
         done = self._check_done()
+
+        # Clamp state to prevent negative altitudes
+        if done:
+            self.state[0] = self._clamp(self.state[0], self.MIN_H, self.MAX_H)
 
         # Get reward
         reward = self._get_reward()
@@ -85,11 +93,15 @@ class QuadHover(gym.Env):
 
     def _get_wind(self):
         if self.wind_std > 0.0:
-            self.wind += (np.random.normal(0.0, self.wind_std) - self.wind) * self.dt / (self.dt + self.wind_std)
+            self.wind += (
+                (np.random.normal(0.0, self.wind_std) - self.wind)
+                * self.dt
+                / (self.dt + self.wind_std)
+            )
 
     def _get_obs(self):
         # Compute ground truth divergence
-        div = - 2.0 * self.state[1] / max(1e-5, self.state[0])
+        div = -2.0 * self.state[1] / max(1e-5, self.state[0])
         div_dot = (div - self.div_ph[0]) / self.dt
 
         # Overwrite placeholder
@@ -105,7 +117,7 @@ class QuadHover(gym.Env):
         # Append to end of deque; if == max length then first is popped
         self.obs.append([div, div_dot])
 
-        return np.array(self.obs[0])
+        return np.array(self.obs[0], dtype=np.float32)
 
     def _clamp(self, value, minimum, maximum):
         return max(min(value, maximum), minimum)
@@ -148,7 +160,8 @@ class QuadHover(gym.Env):
                 self.state[1],
                 self.state[2],
                 (action - self.state[2]) / (self.dt + self.thrust_tc),
-            ]
+            ],
+            dtype=np.float32,
         )
 
     def reset(self, h0=5.0):
@@ -156,10 +169,10 @@ class QuadHover(gym.Env):
         assert h0 >= self.MIN_H and h0 <= self.MAX_H
 
         # State is (height, velocity, effective thrust)
-        self.state = np.array([h0, 0.0, 0.0])
+        self.state = np.array([h0, 0.0, 0.0], dtype=np.float32)
 
         # We need a placeholder for ground truth divergence to compute div_dot
-        self.div_ph = np.array([0.0, 0.0])
+        self.div_ph = np.array([0.0, 0.0], dtype=np.float32)
         # Observations include noise, deque to allow for delay
         # Zeros are just for the initial calculation of div_dot
         self.obs = deque([[0.0, 0.0]], maxlen=self.delay + 1)
