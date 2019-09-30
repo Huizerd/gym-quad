@@ -76,10 +76,6 @@ class QuadHover(gym.Env):
         self.t += self.dt
 
         # Check whether done
-        # TODO: this structure can be done better:
-        # TODO: we adjust h here below and in reward
-        # TODO: and we check twice for done, here and in reward
-        # TODO: and combine with implementing objective score in reward!
         done = self._check_done()
 
         # Clamp state to prevent negative altitudes
@@ -134,12 +130,8 @@ class QuadHover(gym.Env):
         return self.t >= self.MAX_T
 
     def _get_reward(self):
-        if self._check_done():
-            return 1.0 / (self.t * self.state[1] * self.state[1] + 0.01) - self._clamp(
-                self.state[0], self.MIN_H, self.MAX_H
-            )
-        else:
-            return -1.0
+        # Use raw states because placeholder hasn't been updated yet
+        return 1.0 - np.abs(-2.0 * self.state[1] / max(1e-5, self.state[0]))
 
     def _get_state_dot(self, action):
         # Action is delta thrust relative to hover thrust in m/s^2
