@@ -79,7 +79,7 @@ class QuadHover(gym.Env):
         # TODO: this structure can be done better:
         # TODO: we adjust h here below and in reward
         # TODO: and we check twice for done, here and in reward
-        # TODO: and combine with implementing objecive score in reward!
+        # TODO: and combine with implementing objective score in reward!
         done = self._check_done()
 
         # Clamp state to prevent negative altitudes
