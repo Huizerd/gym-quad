@@ -27,6 +27,7 @@ class QuadHover(gym.Env):
         assert delay >= 0
         assert comp_delay_prob >= 0.0 and comp_delay_prob <= 1.0
         assert noise >= 0.0 and noise_p >= 0.0
+        assert thrust_bounds[0] >= -1.0
         assert thrust_tc >= 0.0
         assert settle >= 0.0
         assert wind >= 0.0
