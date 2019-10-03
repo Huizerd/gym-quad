@@ -15,6 +15,7 @@ class QuadHover(gym.Env):
         comp_delay_prob=0.0,
         noise=0.1,
         noise_p=0.1,
+        thrust_bounds=(-0.8, 0.5),
         thrust_tc=0.02,
         settle=1.0,
         wind=0.0,
@@ -60,7 +61,10 @@ class QuadHover(gym.Env):
         # Initialize spaces
         # Thrust value as action, (div, div_dot) as observation
         self.action_space = spaces.Box(
-            low=-0.8 * self.G, high=0.5 * self.G, shape=(1,), dtype=np.float32
+            low=thrust_bounds[0] * self.G,
+            high=thrust_bounds * self.G,
+            shape=(1,),
+            dtype=np.float32,
         )
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
@@ -158,7 +162,9 @@ class QuadHover(gym.Env):
 
     def reset(self, h0=5.0):
         # Check validity of initial height
-        assert h0 >= self.MIN_H and h0 <= self.MAX_H
+        # assert h0 >= self.MIN_H and h0 <= self.MAX_H
+        assert h0 >= self.MIN_H
+        self.MAX_H = h0 + 5.0
 
         # State is (height, velocity, effective thrust)
         self.state = np.array([h0, 0.0, 0.0], dtype=np.float32)
