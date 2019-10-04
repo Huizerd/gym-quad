@@ -63,7 +63,7 @@ class QuadHover(gym.Env):
         # Thrust value as action, (div, div_dot) as observation
         self.action_space = spaces.Box(
             low=thrust_bounds[0] * self.G,
-            high=thrust_bounds * self.G,
+            high=thrust_bounds[1] * self.G,
             shape=(1,),
             dtype=np.float32,
         )
