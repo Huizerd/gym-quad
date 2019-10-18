@@ -12,7 +12,6 @@ class QuadHover(gym.Env):
     def __init__(
         self,
         delay=3,
-        comp_delay_prob=0.0,
         noise=0.1,
         noise_p=0.1,
         thrust_bounds=(-0.8, 0.5),
@@ -21,37 +20,34 @@ class QuadHover(gym.Env):
         wind=0.0,
         h0=5.0,
         dt=0.02,
+        max_t=30.0,
         seed=0,
     ):
         # Check values
         assert delay >= 0
-        assert comp_delay_prob >= 0.0 and comp_delay_prob <= 1.0
         assert noise >= 0.0 and noise_p >= 0.0
         assert thrust_bounds[0] >= -1.0
-        assert thrust_tc >= 0.0
+        assert thrust_tc > 0.0
         assert settle >= 0.0
         assert wind >= 0.0
-        assert dt >= 0.0
+        assert dt > 0.0
+        assert max_t > 0.0 and max_t % dt == 0.0
         assert (delay + 1) * dt < settle
 
         # Constants
         self.G = 9.81
         self.MAX_H = 15.0  # treat as inclusive bounds
         self.MIN_H = 0.05
-        self.MAX_T = 30.0  # time limit
 
         # Keywords
-        # TODO: implement computational delay
         self.dt = dt
+        self.max_t = max_t
         self.settle = settle  # initial settling period without any control
         self.delay = delay  # delay in steps
-        self.comp_delay_prob = comp_delay_prob
         self.noise_std = noise  # white noise
         self.noise_p_std = noise_p  # noise proportional to divergence
         self.wind_std = wind
         self.thrust_tc = thrust_tc  # thrust time constant
-
-        # Figure for rendering
 
         # Seed
         self.seed(seed)
@@ -124,15 +120,13 @@ class QuadHover(gym.Env):
         return max(min(value, maximum), minimum)
 
     def _check_done(self):
-        out_of_bounds = self._check_out_of_bounds()
-        out_of_time = self._check_out_of_time()
-        return out_of_bounds or out_of_time
+        return self._check_out_of_bounds() or self._check_out_of_time()
 
     def _check_out_of_bounds(self):
         return self.state[0] < self.MIN_H or self.state[0] > self.MAX_H
 
     def _check_out_of_time(self):
-        return self.t >= self.MAX_T
+        return self.t >= self.max_t
 
     def _get_reward(self):
         # Use raw states because placeholder hasn't been updated yet
