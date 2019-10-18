@@ -31,7 +31,7 @@ class QuadHover(gym.Env):
         assert settle >= 0.0
         assert wind >= 0.0
         assert dt > 0.0
-        assert max_t > 0.0 and max_t % dt == 0.0
+        assert max_t > 0.0
         assert (delay + 1) * dt < settle
 
         # Constants
