@@ -73,8 +73,12 @@ class QuadHover(gym.Env):
 
         # Take action and update state
         # Forward Euler method
-        self.state += (self._get_state_dot(action) + [0.0, self.wind, 0.0]) * self.dt
+        self.state += (
+            self._get_state_dot(action)
+            + [0.0, self.wind + self.disturbance[0], self.disturbance[1]]
+        ) * self.dt
         self.t += self.dt
+        self.steps += 1
 
         # Check whether done
         done = self._check_done()
@@ -87,6 +91,12 @@ class QuadHover(gym.Env):
         reward = self._get_reward()
 
         return self._get_obs(), reward, done, {}
+
+    def set_disturbance(self, v_disturbance, a_disturbance):
+        self.disturbance = [v_disturbance, a_disturbance]
+
+    def unset_disturbance(self):
+        self.disturbance = [0.0, 0.0]
 
     def _get_wind(self):
         if self.wind_std > 0.0:
@@ -170,9 +180,11 @@ class QuadHover(gym.Env):
         # Zeros are just for the initial calculation of div_dot
         self.obs = deque([[0.0, 0.0]], maxlen=self.delay + 1)
 
-        # Other: time and wind (which we always init as zero)
+        # Other: variables that are always initialized at 0
         self.t = 0.0
+        self.steps = 0
         self.wind = 0.0
+        self.disturbance = [0.0, 0.0]
 
         return self._get_obs()
 
