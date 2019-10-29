@@ -17,23 +17,13 @@ class QuadHover(gym.Env):
         thrust_bounds=(-0.8, 0.5),
         thrust_tc=0.02,
         settle=1.0,
-        wind=0.0,
+        wind=0.1,
         h0=5.0,
         dt=0.02,
+        jitter=0.0,
         max_t=30.0,
         seed=0,
     ):
-        # Check values
-        assert delay >= 0
-        assert noise >= 0.0 and noise_p >= 0.0
-        assert thrust_bounds[0] >= -1.0
-        assert thrust_tc > 0.0
-        assert settle >= 0.0
-        assert wind >= 0.0
-        assert dt > 0.0
-        assert max_t > 0.0
-        assert (delay + 1) * dt < settle
-
         # Constants
         self.G = 9.81
         self.MAX_H = 15.0  # treat as inclusive bounds
@@ -41,6 +31,7 @@ class QuadHover(gym.Env):
 
         # Keywords
         self.dt = dt
+        self.jitter_prob = jitter  # probability of computational jitter
         self.max_t = max_t
         self.settle = settle  # initial settling period without any control
         self.delay = delay  # delay in steps
@@ -67,7 +58,27 @@ class QuadHover(gym.Env):
             low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
         )
 
-    def step(self, action):
+        # Check values
+        self.checks()
+
+    def checks(self):
+        # Check values
+        assert self.delay >= 0
+        assert self.noise_std >= 0.0 and self.noise_p_std >= 0.0
+        assert self.action_space.low[0] >= -self.G
+        assert self.thrust_tc > 0.0
+        assert self.settle >= 0.0
+        assert self.wind_std >= 0.0
+        assert self.jitter_prob >= 0.0 and self.jitter_prob <= 1.0
+        assert self.dt > 0.0
+        assert self.max_t > 0.0
+        assert (self.delay + 1) * self.dt < self.settle
+
+    def step(self, action, jitter_prob=None):
+        # Set computational jitter
+        if jitter_prob is None:
+            jitter_prob = self.jitter_prob
+
         # Update wind
         self._get_wind()
 
@@ -89,6 +100,11 @@ class QuadHover(gym.Env):
 
         # Get reward
         reward = self._get_reward()
+
+        # Computational jitter: do another step (without possibility of another delay)
+        if np.random.random() < jitter_prob:
+            self._get_obs()
+            return self.step(action, jitter_prob=0.0)
 
         return self._get_obs(), reward, done, {}
 
