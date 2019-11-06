@@ -20,6 +20,7 @@ class QuadHover(gym.Env):
         wind=0.1,
         h0=5.0,
         dt=0.02,
+        ds_act=1,
         jitter=0.0,
         max_t=30.0,
         seed=0,
@@ -31,6 +32,7 @@ class QuadHover(gym.Env):
 
         # Keywords
         self.dt = dt
+        self.ds_act = ds_act  # action selection every ds_act steps (so 1 means each step)
         self.jitter_prob = jitter  # probability of computational jitter
         self.max_t = max_t
         self.settle = settle  # initial settling period without any control
@@ -63,7 +65,7 @@ class QuadHover(gym.Env):
 
     def checks(self):
         # Check values
-        assert self.delay >= 0
+        assert self.delay >= 0 and isinstance(self.delay, int)
         assert self.noise_std >= 0.0 and self.noise_p_std >= 0.0
         assert self.action_space.low[0] >= -self.G
         assert self.thrust_tc > 0.0
@@ -71,6 +73,7 @@ class QuadHover(gym.Env):
         assert self.wind_std >= 0.0
         assert self.jitter_prob >= 0.0 and self.jitter_prob <= 1.0
         assert self.dt > 0.0
+        assert self.ds_act > 0 and isinstance(self.ds_act, int)
         assert self.max_t > 0.0
         assert (self.delay + 1) * self.dt < self.settle
 
@@ -82,10 +85,12 @@ class QuadHover(gym.Env):
         # Update wind
         self._get_wind()
 
-        # Take action and update state
-        # Forward Euler method
+        # Take action
+        self._get_action(action)
+
+        # Update state with forward Euler
         self.state += (
-            self._get_state_dot(action)
+            self._get_state_dot()
             + [0.0, self.wind + self.disturbance[0], self.disturbance[1]]
         ) * self.dt
         self.t += self.dt
@@ -113,6 +118,13 @@ class QuadHover(gym.Env):
 
     def unset_disturbance(self):
         self.disturbance = [0.0, 0.0]
+
+    def _get_action(self, action):
+        # Take new action
+        if not self.steps % self.ds_act:
+            print(self.t)
+            self.action = action
+        # Else keep previous action
 
     def _get_wind(self):
         if self.wind_std > 0.0:
@@ -158,7 +170,7 @@ class QuadHover(gym.Env):
         # Use raw states because placeholder hasn't been updated yet
         return 1.0 - np.abs(-2.0 * self.state[1] / max(1e-5, self.state[0]))
 
-    def _get_state_dot(self, action):
+    def _get_state_dot(self):
         # Action is delta thrust relative to hover thrust in m/s^2
         # So: state_dot for the first two states (height, velocity)
         # is just the last two states (velocity, thrust in m/s^2)!
@@ -168,7 +180,7 @@ class QuadHover(gym.Env):
             action = 0.0
         else:
             action = self._clamp(
-                action, self.action_space.low[0], self.action_space.high[0]
+                self.action, self.action_space.low[0], self.action_space.high[0]
             )
 
         # Thrust_dot = (new desired thrust - previous thrust) / (dt + tau_T)
@@ -200,6 +212,7 @@ class QuadHover(gym.Env):
         self.t = 0.0
         self.steps = 0
         self.wind = 0.0
+        self.action = 0.0
         self.disturbance = [0.0, 0.0]
 
         return self._get_obs()
