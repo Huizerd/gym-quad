@@ -14,7 +14,8 @@ class QuadHover(gym.Env):
         delay=3,
         noise=0.1,
         noise_p=0.1,
-        thrust_bounds=(-0.8, 0.5),
+        g=9.81,
+        g_bounds=(-0.8, 0.5),
         thrust_tc=0.02,
         settle=1.0,
         wind=0.1,
@@ -26,11 +27,11 @@ class QuadHover(gym.Env):
         seed=0,
     ):
         # Constants
-        self.G = 9.81
         self.MAX_H = 15.0  # treat as inclusive bounds
         self.MIN_H = 0.05
 
         # Keywords
+        self.G = g
         self.dt = dt
         self.ds_act = ds_act  # action selection every ds_act steps (so 1 means each step)
         self.jitter_prob = jitter  # probability of computational jitter
@@ -50,12 +51,7 @@ class QuadHover(gym.Env):
 
         # Initialize spaces
         # Thrust value as action, (div, div_dot) as observation
-        self.action_space = spaces.Box(
-            low=thrust_bounds[0] * self.G,
-            high=thrust_bounds[1] * self.G,
-            shape=(1,),
-            dtype=np.float32,
-        )
+        self.action_space = spaces.Box(low=g_bounds[0], high=g_bounds[1], shape=(1,), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
         )
@@ -67,7 +63,7 @@ class QuadHover(gym.Env):
         # Check values
         assert self.delay >= 0 and isinstance(self.delay, int)
         assert self.noise_std >= 0.0 and self.noise_p_std >= 0.0
-        assert self.action_space.low[0] >= -self.G
+        assert self.action_space.low[0] >= -1.0
         assert self.thrust_tc > 0.0
         assert self.settle >= 0.0
         assert self.wind_std >= 0.0
@@ -122,7 +118,6 @@ class QuadHover(gym.Env):
     def _get_action(self, action):
         # Take new action
         if not self.steps % self.ds_act:
-            print(self.t)
             self.action = action
         # Else keep previous action
 
@@ -171,9 +166,9 @@ class QuadHover(gym.Env):
         return 1.0 - np.abs(-2.0 * self.state[1] / max(1e-5, self.state[0]))
 
     def _get_state_dot(self):
-        # Action is delta thrust relative to hover thrust in m/s^2
+        # Action is delta G relative to hover G in Gs
         # So: state_dot for the first two states (height, velocity)
-        # is just the last two states (velocity, thrust in m/s^2)!
+        # is just the last two states (velocity, action * G in m/s^2)!
         # First do nothing for some time, to allow settling of controller
         # and filling of deque
         if self.t < self.settle:
@@ -188,7 +183,7 @@ class QuadHover(gym.Env):
             [
                 self.state[1],
                 self.state[2],
-                (action - self.state[2]) / (self.dt + self.thrust_tc),
+                (action * self.G - self.state[2]) / (self.dt + self.thrust_tc),
             ],
             dtype=np.float32,
         )
