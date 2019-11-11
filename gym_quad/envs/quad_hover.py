@@ -139,7 +139,7 @@ class QuadHover(gym.Env):
 
         # Add noise (regular and proportional)
         # Use old noisy estimate for noisy div_dot
-        div += np.random.normal(0.0, self.noise_std) + div * np.random.normal(
+        div += np.random.normal(0.0, self.noise_std) + abs(div) * np.random.normal(
             0.0, self.noise_p_std
         )
         div_dot = (div - self.obs[-1][0]) / self.dt
@@ -219,4 +219,5 @@ class QuadHover(gym.Env):
         pass
 
     def seed(self, seed=None):
+        self.seeds = seed
         np.random.seed(seed)
