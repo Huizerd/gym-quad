@@ -63,7 +63,7 @@ class QuadHover(gym.Env):
         # Check values
         assert self.delay >= 0 and isinstance(self.delay, int)
         assert self.noise_std >= 0.0 and self.noise_p_std >= 0.0
-        assert self.action_space.low[0] >= -1.0
+        assert (self.action_space.low[0] >= -1.0 and self.G == 9.81) or (self.action_space.low[0] >= -9.81 and self.G == 1.0)
         assert self.thrust_tc > 0.0
         assert self.settle >= 0.0
         assert self.wind_std >= 0.0
