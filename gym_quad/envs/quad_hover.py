@@ -95,9 +95,12 @@ class QuadHover(gym.Env):
         # Check whether done
         done = self._check_done()
 
-        # Clamp state to prevent negative altitudes
+        # Clamp state to prevent negative altitudes and too high max time
+        # And prevent another step due to jitter
         if done:
             self.state[0] = self._clamp(self.state[0], self.MIN_H, self.MAX_H)
+            self.t = self._clamp(self.t, 0.0, self.max_t)
+            jitter_prob = 0.0
 
         # Get reward
         reward = self._get_reward()
