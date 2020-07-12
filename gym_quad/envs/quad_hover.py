@@ -27,7 +27,7 @@ class QuadHover(gym.Env):
         seed=0,
     ):
         # Constants
-        self.MAX_H = 15.0  # treat as inclusive bounds
+        self.MAX_H = 100.0  # treat as inclusive bounds
         self.MIN_H = 0.05
 
         # Keywords
