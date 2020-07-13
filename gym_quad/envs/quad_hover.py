@@ -195,7 +195,6 @@ class QuadHover(gym.Env):
         # Check validity of initial height
         # assert h0 >= self.MIN_H and h0 <= self.MAX_H
         assert h0 >= self.MIN_H
-        self.MAX_H = h0 + 5.0
 
         # State is (height, velocity, effective thrust)
         self.state = np.array([h0, 0.0, 0.0], dtype=np.float32)
