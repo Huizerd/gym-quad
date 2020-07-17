@@ -20,6 +20,7 @@ class QuadHover(gym.Env):
         settle=1.0,
         wind=0.1,
         h0=5.0,
+        h_blind=5.0,
         dt=0.02,
         ds_act=1,
         jitter=0.0,
@@ -42,6 +43,7 @@ class QuadHover(gym.Env):
         self.noise_p_std = noise_p  # noise proportional to divergence
         self.wind_std = wind
         self.thrust_tc = thrust_tc  # thrust time constant
+        self.h_blind = h_blind  # height above which divergence can't be observed
 
         # Seed
         self.seed(seed)
@@ -72,6 +74,7 @@ class QuadHover(gym.Env):
         assert self.ds_act > 0 and isinstance(self.ds_act, int)
         assert self.max_t > 0.0
         assert (self.delay + 1) * self.dt < self.settle
+        assert self.h_blind >= self.MIN_H and self.h_blind <= self.MAX_H
 
     def step(self, action, jitter_prob=None):
         # Set computational jitter
@@ -150,7 +153,11 @@ class QuadHover(gym.Env):
         # Append to end of deque; if == max length then first is popped
         self.obs.append([div, div_dot])
 
-        return np.array(self.obs[0], dtype=np.float32)
+        # Return observed value or zeros if we are in the blind area
+        if self.state[0] > self.h_blind:
+            return np.zeros(2, dtype=np.float32)
+        else:
+            return np.array(self.obs[0], dtype=np.float32)
 
     def _clamp(self, value, minimum, maximum):
         return max(min(value, maximum), minimum)
@@ -193,8 +200,7 @@ class QuadHover(gym.Env):
 
     def reset(self, h0=5.0):
         # Check validity of initial height
-        # assert h0 >= self.MIN_H and h0 <= self.MAX_H
-        assert h0 >= self.MIN_H
+        assert h0 >= self.MIN_H and h0 <= self.MAX_H
 
         # State is (height, velocity, effective thrust)
         self.state = np.array([h0, 0.0, 0.0], dtype=np.float32)
