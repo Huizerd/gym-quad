@@ -127,9 +127,7 @@ class QuadHover(gym.Env):
     def _get_action(self, action):
         # Take new action
         if not self.steps % self.ds_act:
-            print(f"before: {action}")
             self.action = action + np.random.normal(0.0, self.noise_a_std)
-            print(f"after: {self.action}")
         # Else keep previous action
 
     def _get_wind(self):
