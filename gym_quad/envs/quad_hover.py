@@ -16,6 +16,7 @@ class QuadHover(gym.Env):
         noise_p=0.1,
         g=9.81,
         g_bounds=(-0.8, 0.5),
+        noise_a=0.0,
         thrust_tc=0.02,
         settle=1.0,
         wind=0.1,
@@ -41,6 +42,7 @@ class QuadHover(gym.Env):
         self.delay = delay  # delay in steps
         self.noise_std = noise  # white noise
         self.noise_p_std = noise_p  # noise proportional to divergence
+        self.noise_a_std = noise_a  # noise (in g's) added to action
         self.wind_std = wind
         self.thrust_tc = thrust_tc  # thrust time constant
         self.h_blind = h_blind  # height above which divergence can't be observed
@@ -65,6 +67,7 @@ class QuadHover(gym.Env):
         # Check values
         assert self.delay >= 0 and isinstance(self.delay, int)
         assert self.noise_std >= 0.0 and self.noise_p_std >= 0.0
+        assert self.noise_a_std >= 0.0
         assert (self.action_space.low[0] >= -1.0 and self.G == 9.81) or (self.action_space.low[0] >= -9.81 and self.G == 1.0)
         assert self.thrust_tc > 0.0
         assert self.settle >= 0.0
@@ -124,7 +127,9 @@ class QuadHover(gym.Env):
     def _get_action(self, action):
         # Take new action
         if not self.steps % self.ds_act:
-            self.action = action
+            print(f"before: {action}")
+            self.action = action + np.random.normal(0.0, self.noise_a_std)
+            print(f"after: {self.action}")
         # Else keep previous action
 
     def _get_wind(self):
