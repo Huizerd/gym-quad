@@ -26,18 +26,18 @@ class QuadHover(gym.Env):
         dt=0.02,
         ds_act=1,
         jitter=0.0,
+        min_h=0.05,
+        max_h=100.0,
         max_t=30.0,
         seed=0,
     ):
-        # Constants
-        self.MAX_H = 100.0  # treat as inclusive bounds
-        self.MIN_H = 0.05
-
         # Keywords
         self.G = g
         self.dt = dt
         self.ds_act = ds_act  # action selection every ds_act steps (so 1 means each step)
         self.jitter_prob = jitter  # probability of computational jitter
+        self.min_h = min_h
+        self.max_h = max_h
         self.max_t = max_t
         self.settle = settle  # initial settling period without any control
         self.delay = delay  # delay in steps
@@ -78,9 +78,11 @@ class QuadHover(gym.Env):
         assert self.jitter_prob >= 0.0 and self.jitter_prob <= 1.0
         assert self.dt > 0.0
         assert self.ds_act > 0 and isinstance(self.ds_act, int)
+        assert self.min_h >= 0.0
+        assert self.max_h > self.min_h
         assert self.max_t > 0.0
         assert (self.delay + 1) * self.dt < self.settle
-        assert self.h_blind >= self.MIN_H and self.h_blind <= self.MAX_H
+        assert self.h_blind >= self.min_h and self.h_blind <= self.max_h
 
     def step(self, action, jitter_prob=None):
         # Set computational jitter
@@ -107,7 +109,7 @@ class QuadHover(gym.Env):
         # Clamp state to prevent negative altitudes and too high max time
         # And prevent another step due to jitter
         if done:
-            self.state[0] = self._clamp(self.state[0], self.MIN_H, self.MAX_H)
+            self.state[0] = self._clamp(self.state[0], self.min_h, self.max_h)
             self.t = self._clamp(self.t, 0.0, self.max_t)
             jitter_prob = 0.0
 
@@ -175,7 +177,7 @@ class QuadHover(gym.Env):
         return self._check_out_of_bounds() or self._check_out_of_time()
 
     def _check_out_of_bounds(self):
-        return self.state[0] < self.MIN_H or self.state[0] > self.MAX_H
+        return self.state[0] < self.min_h or self.state[0] > self.max_h
 
     def _check_out_of_time(self):
         return self.t >= self.max_t
@@ -209,7 +211,7 @@ class QuadHover(gym.Env):
 
     def reset(self, h0=5.0):
         # Check validity of initial height
-        assert h0 >= self.MIN_H and h0 <= self.MAX_H
+        assert h0 >= self.min_h and h0 <= self.max_h
 
         # State is (height, velocity, effective thrust)
         self.state = np.array([h0, 0.0, 0.0], dtype=np.float32)
